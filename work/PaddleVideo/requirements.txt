@@ -1,0 +1,7 @@
+numpy
+pandas
+tqdm
+pyyaml==4.2b2
+opencv-python==4.2.0.32
+decord==0.4.2
+av==8.0.3

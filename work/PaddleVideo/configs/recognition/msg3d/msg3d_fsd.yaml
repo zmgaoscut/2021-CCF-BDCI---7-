@@ -1,0 +1,122 @@
+MODEL: #MODEL field
+    framework: "RecognizerGCN" #Mandatory, indicate the type of network, associate to the 'paddlevideo/modeling/framework/' .
+    backbone: #Mandatory, indicate the type of backbone, associate to the 'paddlevideo/modeling/backbones/' .
+        name: "MSG3D" #Mandatory, The name of backbone.
+        dropout: 0.3
+    head:
+        name: "MSG3DHead" #Mandatory, indicate the type of head, associate to the 'paddlevideo/modeling/heads'
+        num_classes: 30 #Optional, the number of classes to be classified.
+        ls_eps: 0.1
+DATASET: #DATASET field
+    batch_size: 32 #Mandatory, bacth size
+    num_workers: 4 #Mandatory, the number of subprocess on each GPU.
+    test_batch_size: 1
+    test_num_workers: 0
+    train:
+        format: "SkeletonDataset" #Mandatory, indicate the type of dataset, associate to the 'paddlevidel/loader/dateset'
+        file_path: "/home/aistudio/split_dataset/train_data.npy" #Mandatory, train data index file path
+        label_path: "/home/aistudio/split_dataset/train_label.npy"
+        # weight_path: '/home/aistudio/data/data104925/train_weight2.npy'
+    valid:
+        format: "SkeletonDataset" #Mandatory, indicate the type of dataset, associate to the 'paddlevidel/loader/dateset'
+        file_path: "/home/aistudio/split_dataset/valid_data.npy" #Mandatory, valid data index file path
+        label_path: "/home/aistudio/split_dataset/valid_label.npy"
+    test:
+        format: "SkeletonDataset" #Mandatory, indicate the type of dataset, associate to the 'paddlevidel/loader/dateset'
+        file_path: "/home/aistudio/data/data117808/test_B_data.npy" #Mandatory, valid data index file path
+        test_mode: True
+
+PIPELINE: #PIPELINE field
+    train: #Mandotary, indicate the pipeline to deal with the training data, associate to the 'paddlevideo/loader/pipelines/'
+        sample:
+            name: "AutoPadding"
+            window_size: 350
+        transform: #Mandotary, image transfrom operator
+            # - SkeletonNorm:
+            # - RandomShift:
+            - PoseCompact:
+                hw_ratio: 1
+                allow_imgpad: True
+                step: 1
+            - Resize:
+                scale: [-1,64]
+            - RandomResizedCrop:
+                area_range: [0.56,1.0]
+            - Resize:
+                scale: [64,64]
+                keep_ratio: False
+            - Flip: 
+                flip_ratio: 0.5
+            - Toskeleton:
+            - Norm:
+                shape: [64,64]
+    valid: #Mandotary, indicate the pipeline to deal with the training data, associate to the 'paddlevideo/loader/pipelines/'
+        sample:
+            name: "AutoPadding"
+            window_size: 350
+        transform: #Mandotary, image transfrom operator
+            # - SkeletonNorm:
+            - PoseCompact:
+                    hw_ratio: 1
+                    allow_imgpad: True
+                    step: 1
+            - Resize:
+                    scale: [-1,64]
+            - CenterCropkp:
+                    crop_size: 64
+            - Toskeleton:
+            - Norm:
+                shape: [64,64]
+    test: #Mandatory, indicate the pipeline to deal with the validing data. associate to the 'paddlevideo/loader/pipelines/'
+        sample:
+            name: "AutoPadding"
+            window_size: 350
+        transform: #Mandotary, image transfrom operator
+            # - SkeletonNorm:
+            - PoseCompact:
+                hw_ratio: 1
+                allow_imgpad: True
+                step: 1
+                label: False
+            - Resize:
+                    scale: [-1,64]
+            - CenterCropkp:
+                    crop_size: 64
+            - Toskeleton:
+            - Norm:
+                shape: [64,64]
+OPTIMIZER: #OPTIMIZER field
+  name: 'Momentum'
+  momentum: 0.9
+  learning_rate:
+    iter_step: True
+    name: 'CustomWarmupCosineDecay'
+    max_epoch: 60
+    warmup_epochs: 10
+    warmup_start_lr: 0.005
+    cosine_base_lr: 0.05
+  weight_decay:
+    name: 'L2'
+    value: 1e-4
+
+MIX:
+   name: "Mixup"
+   alpha: 0.2
+
+METRIC:
+    name: 'SkeletonMetric'
+    out_file: 'submission.csv'
+
+
+# INFERENCE:
+#     name: 'MSG3D_Inference_helper'
+#     num_channels: 2
+#     window_size: 350
+#     vertex_nums: 25
+#     person_nums: 1
+
+
+model_name: "MSG3D-Joint"
+log_interval: 10 #Optional, the interal of logger, default:10
+epochs: 60 #Mandatory, total epoch
+save_interval: 20
